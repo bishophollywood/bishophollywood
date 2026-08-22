@@ -1,0 +1,39 @@
+name: Fantasy Football Weekly Report
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Wednesdays at 12:00 UTC, Sept-Dec and Jan (NFL regular season + playoffs),
+    # after that week's waivers have processed.
+    - cron: "0 12 * 9-12,1 3"
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fantasy-football-agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Generate report
+        env:
+          ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
+          ESPN_TEAM_ID: ${{ secrets.ESPN_TEAM_ID }}
+          ESPN_SEASON_YEAR: ${{ secrets.ESPN_SEASON_YEAR }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+        run: python main.py report
+
+      - name: Post report as a GitHub issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          WEEK_TITLE=$(head -n 1 reports/latest.md | sed 's/^# //')
+          gh issue create --title "$WEEK_TITLE" --body-file reports/latest.md
