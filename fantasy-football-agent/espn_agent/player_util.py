@@ -45,6 +45,16 @@ def is_bench(player) -> bool:
     return slot(player) in BENCH_SLOTS
 
 
+def team_id_of(box_team) -> int | None:
+    """league.box_scores() replaces BoxScore.home_team/away_team (originally
+    plain team_id ints) with the matching Team object once teams are known,
+    but leaves them as bare ints for byes/unresolved matchups. Normalize
+    either shape to a plain id."""
+    if box_team is None:
+        return None
+    return getattr(box_team, "team_id", box_team)
+
+
 def points_per_game(player) -> float:
     """Season average points/game, falling back to projected average for
     players with no games played yet (rookies, early season)."""
