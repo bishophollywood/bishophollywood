@@ -16,11 +16,12 @@ class SwapRecommendation:
 
 
 def _find_my_lineup(league: League, team_id: int, week: int):
-    # espn_api's BoxScore.home_team/away_team are plain team_id ints, not Team objects.
+    # league.box_scores() replaces home_team/away_team with Team objects once
+    # resolved, so compare by id rather than the raw attribute.
     for box in league.box_scores(week):
-        if box.home_team == team_id:
+        if pu.team_id_of(box.home_team) == team_id:
             return box.home_lineup
-        if box.away_team == team_id:
+        if pu.team_id_of(box.away_team) == team_id:
             return box.away_lineup
     return None
 

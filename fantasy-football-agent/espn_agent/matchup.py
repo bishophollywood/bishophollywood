@@ -36,15 +36,16 @@ def _team_name(league: League, team_id) -> str:
 
 
 def get_matchup_preview(league: League, team_id: int, week: int) -> MatchupPreview | None:
-    # espn_api's BoxScore.home_team/away_team are plain team_id ints, not Team objects.
+    # league.box_scores() replaces home_team/away_team with Team objects once
+    # resolved, so compare by id rather than the raw attribute.
     for box in league.box_scores(week):
-        is_home = box.home_team == team_id
-        is_away = box.away_team == team_id
+        is_home = pu.team_id_of(box.home_team) == team_id
+        is_away = pu.team_id_of(box.away_team) == team_id
         if not (is_home or is_away):
             continue
 
         my_lineup, opp_lineup = (box.home_lineup, box.away_lineup) if is_home else (box.away_lineup, box.home_lineup)
-        opp_team_id = box.away_team if is_home else box.home_team
+        opp_team_id = pu.team_id_of(box.away_team if is_home else box.home_team)
 
         my_starters = _starters(my_lineup)
         opp_starters = _starters(opp_lineup)
