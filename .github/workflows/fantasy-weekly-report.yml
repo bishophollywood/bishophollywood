@@ -2,10 +2,9 @@ name: Fantasy Football Weekly Report
 
 on:
   workflow_dispatch: {}
-  schedule:
-    # Wednesdays at 12:00 UTC, Sept-Dec and Jan (NFL regular season + playoffs),
-    # after that week's waivers have processed.
-    - cron: "0 12 * 9-12,1 3"
+  # Scheduling moved to a Claude Code Routine, which calls this workflow via
+  # the GitHub API on the same weekly cadence — GitHub Actions' own `schedule`
+  # trigger was unreliable here (observed delays of 3+ hours past the target time).
 
 jobs:
   report:
