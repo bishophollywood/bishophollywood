@@ -1,7 +1,20 @@
 name: Fantasy Football Weekly Report
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "What to run"
+        required: false
+        default: "report"
+        type: choice
+        options:
+          - report
+          - player
+      player_name:
+        description: "Player full name (only used when command is 'player')"
+        required: false
+        default: ""
   # Scheduling moved to a Claude Code Routine, which calls this workflow via
   # the GitHub API on the same weekly cadence — GitHub Actions' own `schedule`
   # trigger was unreliable here (observed delays of 3+ hours past the target time).
@@ -21,16 +34,24 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Generate report
+      - name: Run command
         env:
           ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
           ESPN_TEAM_ID: ${{ secrets.ESPN_TEAM_ID }}
           ESPN_SEASON_YEAR: ${{ secrets.ESPN_SEASON_YEAR }}
           ESPN_S2: ${{ secrets.ESPN_S2 }}
           ESPN_SWID: ${{ secrets.ESPN_SWID }}
-        run: python main.py report
+          COMMAND: ${{ github.event.inputs.command }}
+          PLAYER_NAME: ${{ github.event.inputs.player_name }}
+        run: |
+          if [ "$COMMAND" = "player" ]; then
+            python main.py player --name "$PLAYER_NAME"
+          else
+            python main.py report
+          fi
 
       - name: Post report as a GitHub issue
+        if: ${{ github.event.inputs.command == 'report' || github.event.inputs.command == '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
