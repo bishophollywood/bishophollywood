@@ -8,7 +8,7 @@ import argparse
 import os
 import sys
 
-from espn_agent import client
+from espn_agent import client, player_util as pu
 from espn_agent.config import load_config
 from espn_agent.lineup import recommend_lineup
 from espn_agent.matchup import get_matchup_preview
@@ -58,6 +58,23 @@ def run_trade(receive: list[str], send: list[str]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def run_player(name: str) -> str:
+    config = load_config()
+    league = client.connect(config)
+    player = league.player_info(name=name)
+    if player is None:
+        return f"No player found matching '{name}'."
+
+    lines = [
+        f"# {player.name}",
+        f"**Position:** {player.position} ({player.proTeam})",
+        f"**Injury status:** {pu.injury_status(player)}",
+        f"**Season projected pts:** {pu.projected_points(player):.1f}",
+        f"**Season avg pts/game:** {pu.points_per_game(player):.1f}",
+    ]
+    return "\n".join(lines) + "\n"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="ESPN fantasy football assistant")
     subparsers = parser.add_subparsers(dest="command")
@@ -69,6 +86,9 @@ def main() -> int:
     trade_parser.add_argument("--receive", required=True, help="Comma-separated players you would receive")
     trade_parser.add_argument("--send", required=True, help="Comma-separated players you would send")
 
+    player_parser = subparsers.add_parser("player", help="Look up a player's current status")
+    player_parser.add_argument("--name", required=True, help="Player's full name, e.g. 'Zay Flowers'")
+
     args = parser.parse_args()
 
     try:
@@ -77,6 +97,8 @@ def main() -> int:
                 receive=[p.strip() for p in args.receive.split(",")],
                 send=[p.strip() for p in args.send.split(",")],
             )
+        elif args.command == "player":
+            output = run_player(args.name)
         else:
             output = run_report(getattr(args, "week", None))
     except RuntimeError as e:
