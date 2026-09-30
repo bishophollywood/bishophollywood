@@ -23,7 +23,10 @@ class WaiverSuggestion:
 def suggest_waivers(league: League, team: Team) -> list[WaiverSuggestion]:
     free_agents = league.free_agents(size=FREE_AGENT_POOL_SIZE)
     roster = team.roster
-    bench = [p for p in roster if pu.is_bench(p)]
+    # Dropping an IR-slotted player frees the IR slot, not a usable spot for
+    # a healthy add — ESPN keeps IR capacity separate from the bench. Only
+    # true bench players are real drop candidates for a waiver swap.
+    bench = [p for p in roster if pu.slot(p) == "BE"]
 
     suggestions: list[WaiverSuggestion] = []
 
