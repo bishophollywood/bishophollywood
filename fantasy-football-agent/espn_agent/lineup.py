@@ -34,41 +34,44 @@ def recommend_lineup(league: League, team_id: int, week: int) -> list[SwapRecomm
     starters = [p for p in lineup if not pu.is_bench(p)]
     bench = [p for p in lineup if pu.is_bench(p)]
 
-    recommendations: list[SwapRecommendation] = []
-    used_bench_names = set()
-
+    # Build every valid (starter, bench) swap, since a bench player eligible
+    # for multiple slots (e.g. an RB who also qualifies for FLEX) should be
+    # placed wherever they add the most value — not wherever ESPN's lineup
+    # list happens to put the eligible starter first.
+    candidates = []
     for starter in starters:
         starter_slot = pu.slot(starter)
-        candidates = [
-            b for b in bench
-            if b.name not in used_bench_names and starter_slot in pu.eligible_slots(b)
-        ]
-        if not candidates:
+        for b in bench:
+            if starter_slot not in pu.eligible_slots(b):
+                continue
+            gain = pu.projected_points(b) - pu.projected_points(starter)
+            forced = pu.is_inactive(starter)
+            if forced or gain > 0.5:
+                candidates.append((forced, gain, starter, b, starter_slot))
+
+    # Forced (injury) swaps always take priority; otherwise assign the
+    # largest point gains first so each bench player lands in its best slot.
+    candidates.sort(key=lambda c: (not c[0], -c[1]))
+
+    used_starters = set()
+    used_bench = set()
+    recommendations: list[SwapRecommendation] = []
+    for forced, gain, starter, b, starter_slot in candidates:
+        if starter.name in used_starters or b.name in used_bench:
             continue
-
-        best = max(candidates, key=pu.projected_points)
-
-        if pu.is_inactive(starter):
-            recommendations.append(SwapRecommendation(
-                bench_player=best.name,
-                starter_player=starter.name,
-                slot=starter_slot,
-                reason=f"{starter.name} is {pu.injury_status(starter)}",
-                projected_gain=pu.projected_points(best) - pu.projected_points(starter),
-            ))
-            used_bench_names.add(best.name)
-            continue
-
-        gain = pu.projected_points(best) - pu.projected_points(starter)
-        if gain > 0.5:
-            recommendations.append(SwapRecommendation(
-                bench_player=best.name,
-                starter_player=starter.name,
-                slot=starter_slot,
-                reason=f"projected {pu.projected_points(best):.1f} vs {pu.projected_points(starter):.1f} pts",
-                projected_gain=gain,
-            ))
-            used_bench_names.add(best.name)
+        reason = (
+            f"{starter.name} is {pu.injury_status(starter)}" if forced
+            else f"projected {pu.projected_points(b):.1f} vs {pu.projected_points(starter):.1f} pts"
+        )
+        recommendations.append(SwapRecommendation(
+            bench_player=b.name,
+            starter_player=starter.name,
+            slot=starter_slot,
+            reason=reason,
+            projected_gain=gain,
+        ))
+        used_starters.add(starter.name)
+        used_bench.add(b.name)
 
     recommendations.sort(key=lambda r: r.projected_gain, reverse=True)
     return recommendations
