@@ -1,5 +1,6 @@
 """Waiver-wire pickup suggestions based on projected points by position."""
 from dataclasses import dataclass
+from datetime import date
 
 from espn_api.football import League, Team
 
@@ -18,6 +19,15 @@ class WaiverSuggestion:
     drop_player: str
     drop_projected: float
     position: str
+
+
+@dataclass
+class FreeAgentOption:
+    name: str
+    pro_team: str
+    opponent: str
+    projected_points: float
+    game_date: object
 
 
 def suggest_waivers(league: League, team: Team) -> list[WaiverSuggestion]:
@@ -56,3 +66,34 @@ def suggest_waivers(league: League, team: Team) -> list[WaiverSuggestion]:
 
     suggestions.sort(key=lambda s: s.add_projected - s.drop_projected, reverse=True)
     return suggestions
+
+
+def list_free_agents(
+    league: League, position: str, count: int = 10, today_only: bool = False
+) -> list[FreeAgentOption]:
+    """Free agents at a position, ranked by this week's projected points.
+
+    For a same-week streaming decision (e.g. a one-off D/ST pickup) rather
+    than the season-long roster-fit logic in suggest_waivers().
+    """
+    week = league.current_week
+    candidates = league.free_agents(week=week, size=50, position=position)
+    candidates.sort(key=pu.projected_points, reverse=True)
+
+    if today_only:
+        today = date.today()
+        candidates = [
+            c for c in candidates
+            if pu.game_date(c) is not None and pu.game_date(c).date() == today
+        ]
+
+    return [
+        FreeAgentOption(
+            name=c.name,
+            pro_team=c.proTeam,
+            opponent=pu.pro_opponent(c),
+            projected_points=pu.projected_points(c),
+            game_date=pu.game_date(c),
+        )
+        for c in candidates[:count]
+    ]

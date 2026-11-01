@@ -14,7 +14,7 @@ from espn_agent.lineup import recommend_lineup
 from espn_agent.matchup import get_matchup_preview
 from espn_agent.report import build_report
 from espn_agent.trades import evaluate_trade
-from espn_agent.waivers import suggest_waivers
+from espn_agent.waivers import list_free_agents, suggest_waivers
 
 
 def run_report(week: int | None) -> str:
@@ -75,6 +75,25 @@ def run_player(name: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+def run_freeagents(position: str, count: int, today_only: bool) -> str:
+    config = load_config()
+    league = client.connect(config)
+    options = list_free_agents(league, position, count=count, today_only=today_only)
+
+    if not options:
+        scope = "playing today" if today_only else "available"
+        return f"No free agent {position} options {scope} right now.\n"
+
+    lines = [f"# Free Agent {position} Options" + (" (playing today)" if today_only else "")]
+    for opt in options:
+        kickoff = opt.game_date.strftime("%a %I:%M %p") if opt.game_date else "bye/unknown"
+        lines.append(
+            f"- **{opt.name}** ({opt.pro_team}) vs {opt.opponent} — "
+            f"{opt.projected_points:.1f} proj. pts — {kickoff}"
+        )
+    return "\n".join(lines) + "\n"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="ESPN fantasy football assistant")
     subparsers = parser.add_subparsers(dest="command")
@@ -89,6 +108,11 @@ def main() -> int:
     player_parser = subparsers.add_parser("player", help="Look up a player's current status")
     player_parser.add_argument("--name", required=True, help="Player's full name, e.g. 'Zay Flowers'")
 
+    fa_parser = subparsers.add_parser("freeagents", help="List top free agents at a position")
+    fa_parser.add_argument("--position", required=True, help="e.g. 'D/ST', 'RB', 'WR', 'TE', 'QB', 'K'")
+    fa_parser.add_argument("--count", type=int, default=10, help="How many to list (default 10)")
+    fa_parser.add_argument("--today", action="store_true", help="Only show options whose pro team plays today")
+
     args = parser.parse_args()
 
     try:
@@ -99,6 +123,8 @@ def main() -> int:
             )
         elif args.command == "player":
             output = run_player(args.name)
+        elif args.command == "freeagents":
+            output = run_freeagents(args.position, args.count, args.today)
         else:
             output = run_report(getattr(args, "week", None))
     except RuntimeError as e:

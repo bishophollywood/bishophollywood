@@ -11,10 +11,20 @@ on:
         options:
           - report
           - player
+          - freeagents
       player_name:
         description: "Player full name (only used when command is 'player')"
         required: false
         default: ""
+      position:
+        description: "Position, e.g. D/ST, RB, WR (only used when command is 'freeagents')"
+        required: false
+        default: "D/ST"
+      today_only:
+        description: "Only show free agents whose pro team plays today (only used when command is 'freeagents')"
+        required: false
+        type: boolean
+        default: true
   # Scheduling moved to a Claude Code Routine, which calls this workflow via
   # the GitHub API on the same weekly cadence — GitHub Actions' own `schedule`
   # trigger was unreliable here (observed delays of 3+ hours past the target time).
@@ -43,9 +53,17 @@ jobs:
           ESPN_SWID: ${{ secrets.ESPN_SWID }}
           COMMAND: ${{ github.event.inputs.command }}
           PLAYER_NAME: ${{ github.event.inputs.player_name }}
+          POSITION: ${{ github.event.inputs.position }}
+          TODAY_ONLY: ${{ github.event.inputs.today_only }}
         run: |
           if [ "$COMMAND" = "player" ]; then
             python main.py player --name "$PLAYER_NAME"
+          elif [ "$COMMAND" = "freeagents" ]; then
+            if [ "$TODAY_ONLY" = "false" ]; then
+              python main.py freeagents --position "$POSITION"
+            else
+              python main.py freeagents --position "$POSITION" --today
+            fi
           else
             python main.py report
           fi
