@@ -55,6 +55,16 @@ def team_id_of(box_team) -> int | None:
     return getattr(box_team, "team_id", box_team)
 
 
+def game_date(player):
+    """Kickoff time for the player's pro team this week, or None (bye week,
+    or a Player fetched without a schedule context, e.g. via player_info())."""
+    return getattr(player, "game_date", None)
+
+
+def pro_opponent(player) -> str:
+    return getattr(player, "pro_opponent", None) or "—"
+
+
 def points_per_game(player) -> float:
     """Season average points/game, falling back to projected average for
     players with no games played yet (rookies, early season)."""
