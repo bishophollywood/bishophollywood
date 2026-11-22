@@ -86,7 +86,7 @@ def run_freeagents(position: str, count: int, today_only: bool) -> str:
 
     lines = [f"# Free Agent {position} Options" + (" (playing today)" if today_only else "")]
     for opt in options:
-        kickoff = opt.game_date.strftime("%a %I:%M %p") if opt.game_date else "bye/unknown"
+        kickoff = opt.game_date.strftime("%a %I:%M %p ET") if opt.game_date else "bye/unknown"
         lines.append(
             f"- **{opt.name}** ({opt.pro_team}) vs {opt.opponent} — "
             f"{opt.projected_points:.1f} proj. pts — {kickoff}"
