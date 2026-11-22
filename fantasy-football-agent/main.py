@@ -75,6 +75,22 @@ def run_player(name: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+def run_roster() -> str:
+    config = load_config()
+    league = client.connect(config)
+    team = client.get_my_team(league, config.team_id)
+
+    order = {"BE": 1, "IR": 2}
+    players = sorted(team.roster, key=lambda p: (order.get(pu.slot(p), 0), pu.slot(p)))
+    lines = [f"# Roster — {getattr(team, 'team_name', config.team_id)} ({len(players)} players)"]
+    for p in players:
+        lines.append(
+            f"- {pu.slot(p) or '?'}: **{p.name}** ({p.position}, {p.proTeam}) — "
+            f"{pu.projected_points(p):.1f} proj. pts — {pu.injury_status(p)}"
+        )
+    return "\n".join(lines) + "\n"
+
+
 def run_freeagents(position: str, count: int, today_only: bool) -> str:
     config = load_config()
     league = client.connect(config)
@@ -108,6 +124,8 @@ def main() -> int:
     player_parser = subparsers.add_parser("player", help="Look up a player's current status")
     player_parser.add_argument("--name", required=True, help="Player's full name, e.g. 'Zay Flowers'")
 
+    subparsers.add_parser("roster", help="Show your roster by lineup slot")
+
     fa_parser = subparsers.add_parser("freeagents", help="List top free agents at a position")
     fa_parser.add_argument("--position", required=True, help="e.g. 'D/ST', 'RB', 'WR', 'TE', 'QB', 'K'")
     fa_parser.add_argument("--count", type=int, default=10, help="How many to list (default 10)")
@@ -123,6 +141,8 @@ def main() -> int:
             )
         elif args.command == "player":
             output = run_player(args.name)
+        elif args.command == "roster":
+            output = run_roster()
         elif args.command == "freeagents":
             output = run_freeagents(args.position, args.count, args.today)
         else:

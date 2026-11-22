@@ -12,6 +12,7 @@ on:
           - report
           - player
           - freeagents
+          - roster
       player_name:
         description: "Player full name (only used when command is 'player')"
         required: false
@@ -58,6 +59,8 @@ jobs:
         run: |
           if [ "$COMMAND" = "player" ]; then
             python main.py player --name "$PLAYER_NAME"
+          elif [ "$COMMAND" = "roster" ]; then
+            python main.py roster
           elif [ "$COMMAND" = "freeagents" ]; then
             if [ "$TODAY_ONLY" = "false" ]; then
               python main.py freeagents --position "$POSITION"
