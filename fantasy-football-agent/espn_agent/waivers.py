@@ -1,6 +1,5 @@
 """Waiver-wire pickup suggestions based on projected points by position."""
 from dataclasses import dataclass
-from datetime import date
 
 from espn_api.football import League, Team
 
@@ -81,7 +80,7 @@ def list_free_agents(
     candidates.sort(key=pu.projected_points, reverse=True)
 
     if today_only:
-        today = date.today()
+        today = pu.today_in_league_tz()
         candidates = [
             c for c in candidates
             if pu.game_date(c) is not None and pu.game_date(c).date() == today

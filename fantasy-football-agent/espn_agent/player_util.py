@@ -5,6 +5,9 @@ helpers try the modern name first and fall back to older ones instead of
 raising AttributeError.
 """
 
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
+
 BENCH_SLOTS = {"BE", "IR"}
 INACTIVE_STATUSES = {"OUT", "INJURY_RESERVE", "SUSPENSION", "DOUBTFUL"}
 
@@ -55,10 +58,22 @@ def team_id_of(box_team) -> int | None:
     return getattr(box_team, "team_id", box_team)
 
 
+LEAGUE_TZ = ZoneInfo("America/New_York")
+
+
+def today_in_league_tz() -> date:
+    return datetime.now(LEAGUE_TZ).date()
+
+
 def game_date(player):
-    """Kickoff time for the player's pro team this week, or None (bye week,
-    or a Player fetched without a schedule context, e.g. via player_info())."""
-    return getattr(player, "game_date", None)
+    """Kickoff time (US Eastern) for the player's pro team this week, or None
+    (bye week, or a Player fetched without a schedule context, e.g. via
+    player_info()). espn_api builds a naive datetime in the host's local zone
+    (UTC on the CI runner), so convert explicitly rather than showing raw UTC."""
+    raw = getattr(player, "game_date", None)
+    if raw is None:
+        return None
+    return raw.astimezone(LEAGUE_TZ)
 
 
 def pro_opponent(player) -> str:
