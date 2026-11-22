@@ -15,7 +15,7 @@ class SwapRecommendation:
     projected_gain: float
 
 
-def _find_my_lineup(league: League, team_id: int, week: int):
+def find_my_lineup(league: League, team_id: int, week: int):
     # league.box_scores() replaces home_team/away_team with Team objects once
     # resolved, so compare by id rather than the raw attribute.
     for box in league.box_scores(week):
@@ -27,7 +27,7 @@ def _find_my_lineup(league: League, team_id: int, week: int):
 
 
 def recommend_lineup(league: League, team_id: int, week: int) -> list[SwapRecommendation]:
-    lineup = _find_my_lineup(league, team_id, week)
+    lineup = find_my_lineup(league, team_id, week)
     if lineup is None:
         return []
 

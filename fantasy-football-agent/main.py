@@ -10,7 +10,7 @@ import sys
 
 from espn_agent import client, player_util as pu
 from espn_agent.config import load_config
-from espn_agent.lineup import recommend_lineup
+from espn_agent.lineup import find_my_lineup, recommend_lineup
 from espn_agent.matchup import get_matchup_preview
 from espn_agent.report import build_report
 from espn_agent.trades import evaluate_trade
@@ -80,9 +80,14 @@ def run_roster() -> str:
     league = client.connect(config)
     team = client.get_my_team(league, config.team_id)
 
+    week = client.current_week(league)
+    lineup = find_my_lineup(league, config.team_id, week)
+    if lineup is None:
+        return f"No matchup found for week {week}.\n"
+
     order = {"BE": 1, "IR": 2}
-    players = sorted(team.roster, key=lambda p: (order.get(pu.slot(p), 0), pu.slot(p)))
-    lines = [f"# Roster — {getattr(team, 'team_name', config.team_id)} ({len(players)} players)"]
+    players = sorted(lineup, key=lambda p: (order.get(pu.slot(p), 0), pu.slot(p)))
+    lines = [f"# Roster — {getattr(team, 'team_name', config.team_id)}, week {week} projections ({len(players)} players)"]
     for p in players:
         lines.append(
             f"- {pu.slot(p) or '?'}: **{p.name}** ({p.position}, {p.proTeam}) — "

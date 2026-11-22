@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from espn_api.football import League, Team
 
 from . import player_util as pu
+from .lineup import find_my_lineup
 
 POSITIONS = ("QB", "RB", "WR", "TE", "FLEX", "D/ST", "K")
 FREE_AGENT_POOL_SIZE = 60
@@ -31,11 +32,16 @@ class FreeAgentOption:
 
 def suggest_waivers(league: League, team: Team) -> list[WaiverSuggestion]:
     free_agents = league.free_agents(size=FREE_AGENT_POOL_SIZE)
-    roster = team.roster
+    # team.roster players only carry season-long projections, while the free
+    # agents below carry this week's. Use the box-score lineup so drop
+    # candidates are compared on the same weekly basis.
+    lineup = find_my_lineup(league, team.team_id, league.current_week)
+    if lineup is None:
+        return []
     # Dropping an IR-slotted player frees the IR slot, not a usable spot for
     # a healthy add — ESPN keeps IR capacity separate from the bench. Only
     # true bench players are real drop candidates for a waiver swap.
-    bench = [p for p in roster if pu.slot(p) == "BE"]
+    bench = [p for p in lineup if pu.slot(p) == "BE"]
 
     suggestions: list[WaiverSuggestion] = []
 
