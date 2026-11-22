@@ -40,8 +40,13 @@ def build_report(
         lines.append("Your projected-optimal starters are already in the lineup. No changes suggested.")
     else:
         for rec in lineup_recs:
+            target = (
+                f"in your empty **{rec.slot}** slot"
+                if rec.starter_player is None
+                else f"over **{rec.starter_player}** at {rec.slot}"
+            )
             lines.append(
-                f"- **Start {rec.bench_player}** over **{rec.starter_player}** at {rec.slot} "
+                f"- **Start {rec.bench_player}** {target} "
                 f"— {rec.reason} ({rec.projected_gain:+.1f} proj. pts)"
             )
     lines.append("")
